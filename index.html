@@ -59,6 +59,20 @@ header{padding-top:calc(10px + env(safe-area-inset-top));margin-bottom:14px}.dat
 .photo-preview{width:100%;max-height:220px;object-fit:cover;border-radius:14px;margin-top:8px}.photo-thumb{width:64px;height:64px;object-fit:cover;border-radius:12px;float:left;margin-right:10px}
 </style>
 
+
+<style>
+.goal-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.goal-box{background:#edf5f1;border-radius:15px;padding:12px}
+.goal-box small{display:block;color:var(--muted);font-size:10px}.goal-box b{font-size:20px}
+.progress{height:10px;background:#e7ece8;border-radius:999px;overflow:hidden;margin-top:8px}
+.progress i{display:block;height:100%;background:var(--green)}
+.checklist{display:grid;gap:8px}.check-row{display:flex;align-items:flex-start;gap:9px;background:#fff;border:1px solid var(--line);border-radius:13px;padding:10px}
+.check-row input{margin-top:3px;transform:scale(1.2)}
+.monthly-meeting{background:#f8fbf9;border:1px solid var(--line);border-radius:17px;padding:13px;margin-top:8px}
+.monthly-meeting h4{margin:0 0 6px}.monthly-meeting ul{margin:0;padding-left:18px;font-size:12px;line-height:1.7;color:var(--muted)}
+.link-card{background:#fff;border:1px solid var(--line);border-radius:15px;padding:12px;margin-top:8px}.link-card strong{display:block;margin-bottom:5px}
+</style>
+
 </head><body>
 <div class="app">
 <header><div class="date" id="date"></div><div class="title" id="title">ホーム</div></header>
@@ -70,6 +84,14 @@ header{padding-top:calc(10px + env(safe-area-inset-top));margin-bottom:14px}.dat
 <div class="cal-grid" id="calendar"></div></div>
 <div class="meta" style="margin-top:8px">● タスク期限　● 発信予定　● イベント</div></div>
 <div class="card"><h3>AI週次ブリーフィング</h3><div id="weeklyBrief"></div><button class="gold" data-page="ai" data-ai-mode="weekly">ChatGPTで週次会議</button></div>
+<div class="card"><h3>今月の目標</h3>
+<div class="goal-grid">
+<div class="goal-box"><small>売上目標</small><b id="goalSalesText">¥0</b><div class="progress"><i id="goalSalesBar" style="width:0%"></i></div><div class="meta" id="goalSalesRate"></div></div>
+<div class="goal-box"><small>経費予算</small><b id="budgetText">¥0</b><div class="progress"><i id="budgetBar" style="width:0%"></i></div><div class="meta" id="budgetRate"></div></div>
+</div>
+<div class="quick" style="margin-top:10px"><button id="setSalesGoal">売上目標を設定</button><button id="setBudget">経費予算を設定</button></div>
+</div>
+<div class="card"><h3>月次AI経営会議</h3><div id="monthlyMeeting"></div><button class="gold" data-page="ai" data-ai-mode="monthly">ChatGPTで月次会議</button></div>
 <div class="card"><h3>AIマネージャーから</h3><div id="tips"></div></div>
 <div class="card"><h3>すぐ登録</h3><div class="quick"><button data-add="tasks">＋ タスク<small>期限・優先度</small></button><button data-add="works">＋ 制作<small>作品・撮影・出品</small></button><button data-add="sales">＋ 売上<small>利益を自動計算</small></button><button data-add="content">＋ 発信<small>配信・note・YouTube</small></button></div></div>
 </section>
@@ -86,11 +108,11 @@ header{padding-top:calc(10px + env(safe-area-inset-top));margin-bottom:14px}.dat
 <div id="salesList" class="list"></div></section>
 
 <section id="ai" class="page"><div class="section-head"><h2>AIマネージャー</h2></div><div class="card"><h3>相談したいこと</h3><div class="ai-menu">
-<button data-ai-mode="today">今日の優先<small>何から始める？</small></button><button data-ai-mode="sales">売上分析<small>利益・販売先・商品</small></button><button data-ai-mode="works">制作相談<small>止まっている作品・次工程</small></button><button data-ai-mode="content">発信企画<small>note・YouTube・配信</small></button><button data-ai-mode="weekly">週次レビュー<small>今週→来週</small></button><button data-ai-mode="idea">新企画<small>新しいアイデア検討</small></button>
+<button data-ai-mode="today">今日の優先<small>何から始める？</small></button><button data-ai-mode="sales">売上分析<small>利益・販売先・商品</small></button><button data-ai-mode="works">制作相談<small>止まっている作品・次工程</small></button><button data-ai-mode="content">発信企画<small>note・YouTube・配信</small></button><button data-ai-mode="weekly">週次レビュー<small>今週→来週</small></button><button data-ai-mode="monthly">月次経営会議<small>売上・利益・経費・目標</small></button><button data-ai-mode="idea">新企画<small>新しいアイデア検討</small></button>
 </div></div><div class="ai"><div id="aiModeLabel">今日の優先</div><textarea id="question" placeholder="追加で相談したいことがあれば入力"></textarea><div class="ai-actions"><button class="a" id="copyPrompt">相談文を作る</button><button class="b" id="openChat">ChatGPTを開く</button></div><div id="aiStatus" style="font-size:11px;margin-top:8px"></div></div><div class="card"><h3>アプリ内の分析</h3><div id="aiLocal"></div></div></section>
 
 <section id="ideas" class="page"><div class="section-head"><h2>企画・アイデア</h2><button class="add" data-add="ideas">＋</button></div><div id="ideasList" class="list"></div></section>
-<section id="inventory" class="page"><div class="section-head"><h2>在庫</h2><button class="add" data-add="inventory">＋</button></div><div class="card"><h3>在庫AI</h3><div id="inventoryInsight"></div></div><div id="inventoryList" class="list"></div></section>
+<section id="inventory" class="page"><div class="section-head"><h2>在庫</h2><button class="add" data-add="inventory">＋</button></div><div class="card"><h3>在庫AI</h3><div id="inventoryInsight"></div></div><div class="card"><h3>在庫 → 制作 → 販売 連携</h3><div id="flowInsight"></div></div><div id="inventoryList" class="list"></div></section>
 <section id="expenses" class="page"><div class="section-head"><h2>経費・会計</h2><button class="add" data-add="expenses">＋</button></div><div id="expensesList" class="list"></div></section>
 <section id="events" class="page"><div class="section-head"><h2>出店・販売企画</h2><button class="add" data-add="events">＋</button></div>
 <div class="card"><h3>イベント採算シミュレーション</h3><div class="calc-grid">
@@ -100,6 +122,7 @@ header{padding-top:calc(10px + env(safe-area-inset-top));margin-bottom:14px}.dat
 <div class="field"><label>1個あたり原価</label><input id="evCost" type="number" inputmode="numeric" placeholder="500"></div>
 <div class="field"><label>販売見込数</label><input id="evQty" type="number" inputmode="numeric" placeholder="10"></div></div>
 <button class="save" type="button" id="eventCalc">採算を計算</button><div id="eventResult"></div></div>
+<div class="card"><h3>イベント準備チェックリスト</h3><div id="eventChecklist" class="checklist"></div><div class="quick" style="margin-top:10px"><button id="resetChecklist">チェックをリセット</button><button id="addChecklistItem">項目を追加</button></div></div>
 <div id="eventsList" class="list"></div></section>
 <section id="content" class="page"><div class="section-head"><h2>配信・発信</h2><button class="add" data-add="content">＋</button></div><div class="card"><h3>発信AI</h3><div id="contentInsight"></div></div><div id="contentList" class="list"></div></section>
 <section id="meetings" class="page"><div class="section-head"><h2>会議・週次レビュー</h2><button class="add" data-add="meetings">＋</button></div><div id="meetingsList" class="list"></div></section>
@@ -114,9 +137,9 @@ header{padding-top:calc(10px + env(safe-area-inset-top));margin-bottom:14px}.dat
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)], yen=v=>"¥"+Number(v||0).toLocaleString("ja-JP");
 const esc=v=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
 const KEY="monreve_manager_sites_ready_v1";
-const empty=()=>({tasks:[],works:[],sales:[],ideas:[],inventory:[],expenses:[],events:[],content:[],meetings:[]});
+const empty=()=>({tasks:[],works:[],sales:[],ideas:[],inventory:[],expenses:[],events:[],content:[],meetings:[],settings:{salesGoal:0,budget:0,eventChecklist:["出店申込・契約確認","作品数を決める","値札・価格表を準備","釣銭・決済手段を準備","什器・テーブル備品確認","袋・ラッピング準備","SNS告知","当日の持ち物最終確認"]}});
 let db=load(),kind=null,aiMode="today",editingId=null,calDate=new Date();
-function load(){try{return Object.assign(empty(),JSON.parse(localStorage.getItem(KEY)||"{}"))}catch{return empty()}}
+function load(){try{let d=Object.assign(empty(),JSON.parse(localStorage.getItem(KEY)||"{}"));d.settings=Object.assign(empty().settings,d.settings||{});return d}catch{return empty()}}
 function save(){localStorage.setItem(KEY,JSON.stringify(db))}
 function nid(){return Date.now()+Math.floor(Math.random()*9999)}
 const cfg={
@@ -158,9 +181,9 @@ function totals(){let sales=db.sales.reduce((a,x)=>a+Number(x.amount||0),0),gros
 function localInsights(){let now=new Date(),today=now.toISOString().slice(0,10),open=db.tasks.filter(x=>x.status!=="完了"),urgent=open.filter(x=>x.due&&x.due<=today),high=open.filter(x=>x.priority==="高"),low=db.inventory.filter(x=>Number(x.alert)>0&&Number(x.qty)<=Number(x.alert)),stalled=db.works.filter(x=>x.status==="制作中"),pending=db.content.filter(x=>!["公開済み","投稿済み"].includes(x.status)),t=totals(),ins=[];if(urgent.length)ins.push(["期限注意",`${urgent.length}件が期限到来・超過です。`]);if(high.length>=3)ins.push(["高優先が多め",`高優先が${high.length}件あります。今日やるものを3件以内に絞るのがおすすめです。`]);if(stalled.length>=3)ins.push(["制作中が多め",`${stalled.length}作品が制作中です。完成→撮影→出品まで1作品ずつ終わらせると進みやすいです。`]);if(low.length)ins.push(["在庫警告",`${low.length}件が警告ライン以下です。制作予定と照らして補充を検討してください。`]);if(t.sales>0&&t.margin<35)ins.push(["利益率注意",`現在の純利益率は${t.margin.toFixed(1)}%です。原価・手数料・送料・価格設定を見直す候補があります。`]);if(pending.length>=5)ins.push(["発信が滞留",`未公開の発信企画が${pending.length}件あります。媒体を絞って今週分を決めると進めやすいです。`]);if(!ins.length)ins.push(["順調です","大きな警告はありません。次は売上・制作・発信のどれを伸ばすか選ぶ段階です。"]);return ins}
 function setInsight(sel,items){$(sel).innerHTML=items.map(([h,p])=>`<div class="insight"><strong>${esc(h)}</strong><p>${esc(p)}</p></div>`).join("")}
 function analysis(){const ch={};db.sales.forEach(x=>{let k=x.channel||"未設定";ch[k]=(ch[k]||0)+Number(x.amount||0)});let arr=Object.entries(ch).sort((a,b)=>b[1]-a[1]);if(!arr.length){$("#salesAnalysis").innerHTML='<div class="meta">まだデータがありません。</div>';return}let max=Math.max(...arr.map(x=>x[1]),1);$("#salesAnalysis").innerHTML=arr.map(([k,v])=>`<div class="analysis"><div class="line"><span>${esc(k)}</span><b>${yen(v)}</b></div><div class="bar"><i style="width:${Math.max(4,v/max*100)}%"></i></div></div>`).join("")}
-function modeLabel(){return {today:"今日の優先",sales:"売上分析",works:"制作相談",content:"発信企画",weekly:"週次レビュー",idea:"新企画"}[aiMode]||"AI相談"}
+function modeLabel(){return {today:"今日の優先",sales:"売上分析",works:"制作相談",content:"発信企画",weekly:"週次レビュー",monthly:"月次経営会議",idea:"新企画"}[aiMode]||"AI相談"}
 function setAIMode(){$$("#ai [data-ai-mode]").forEach(b=>b.classList.toggle("active",b.dataset.aiMode===aiMode));$("#aiModeLabel").textContent=modeLabel()}
-function promptText(){let open=db.tasks.filter(x=>x.status!=="完了"),low=db.inventory.filter(x=>Number(x.alert)>0&&Number(x.qty)<=Number(x.alert)),t=totals(),works=db.works.filter(x=>x.status==="制作中"),posts=db.content.filter(x=>!["公開済み","投稿済み"].includes(x.status));let base=`あなたはmonrêveの専属AIマネージャーです。\n未完了タスク:${open.length}件\n制作中:${works.length}作品\n未公開発信:${posts.length}件\n在庫警告:${low.length}件\n累計売上:${yen(t.sales)}\n累計純利益:${yen(t.net)}\n利益率:${t.margin.toFixed(1)}%\n`;let detail="";if(aiMode==="today")detail=`今日やるべきことを3つに絞ってください。タスク:${open.slice(0,10).map(x=>`${x.title}(優先${x.priority},期限${x.due||"なし"})`).join(" / ")}`;if(aiMode==="sales")detail=`売上・利益・販売先を分析し、伸ばすべき商品・販売先・価格見直し候補を提案してください。売上データ:${db.sales.slice(0,20).map(x=>`${x.date} ${x.channel} ${x.item} 売上${x.amount} 原価${x.cost} 手数料${x.fee} 送料${x.shipping}`).join(" / ")}`;if(aiMode==="works")detail=`制作中作品の次工程を整理し、完成→撮影→出品までの優先順位を提案してください。制作:${db.works.slice(0,20).map(x=>`${x.name} ${x.category} ${x.status} 撮影${x.photo} 出品${x.listing}`).join(" / ")}`;if(aiMode==="content")detail=`Pococha、パルム、note、YouTube、Instagram、LINEスタンプの発信企画を整理し、今週の投稿案を3つ提案してください。発信:${db.content.slice(0,20).map(x=>`${x.platform} ${x.title} ${x.status} ${x.publish||""}`).join(" / ")}`;if(aiMode==="weekly")detail=`週次レビューを作ってください。できたこと、止まっていること、売上、制作、発信、来週の重点3つに分けてください。`;if(aiMode==="idea")detail=`新しい企画案を5つ出し、実現しやすさ・売上可能性・準備量で評価してください。既存アイデア:${db.ideas.slice(0,20).map(x=>`${x.category} ${x.title} ${x.status}`).join(" / ")}`;return base+detail+`\n追加相談:${$("#question").value||"なし"}\n日本語で、優先順位→理由→具体的な次の行動の順で答えてください。`}
+function promptText(){let open=db.tasks.filter(x=>x.status!=="完了"),low=db.inventory.filter(x=>Number(x.alert)>0&&Number(x.qty)<=Number(x.alert)),t=totals(),works=db.works.filter(x=>x.status==="制作中"),posts=db.content.filter(x=>!["公開済み","投稿済み"].includes(x.status));let base=`あなたはmonrêveの専属AIマネージャーです。\n未完了タスク:${open.length}件\n制作中:${works.length}作品\n未公開発信:${posts.length}件\n在庫警告:${low.length}件\n累計売上:${yen(t.sales)}\n累計純利益:${yen(t.net)}\n利益率:${t.margin.toFixed(1)}%\n`;let detail="";if(aiMode==="today")detail=`今日やるべきことを3つに絞ってください。タスク:${open.slice(0,10).map(x=>`${x.title}(優先${x.priority},期限${x.due||"なし"})`).join(" / ")}`;if(aiMode==="sales")detail=`売上・利益・販売先を分析し、伸ばすべき商品・販売先・価格見直し候補を提案してください。売上データ:${db.sales.slice(0,20).map(x=>`${x.date} ${x.channel} ${x.item} 売上${x.amount} 原価${x.cost} 手数料${x.fee} 送料${x.shipping}`).join(" / ")}`;if(aiMode==="works")detail=`制作中作品の次工程を整理し、完成→撮影→出品までの優先順位を提案してください。制作:${db.works.slice(0,20).map(x=>`${x.name} ${x.category} ${x.status} 撮影${x.photo} 出品${x.listing}`).join(" / ")}`;if(aiMode==="content")detail=`Pococha、パルム、note、YouTube、Instagram、LINEスタンプの発信企画を整理し、今週の投稿案を3つ提案してください。発信:${db.content.slice(0,20).map(x=>`${x.platform} ${x.title} ${x.status} ${x.publish||""}`).join(" / ")}`;if(aiMode==="weekly")detail=`週次レビューを作ってください。できたこと、止まっていること、売上、制作、発信、来週の重点3つに分けてください。`;if(aiMode==="monthly")detail=`月次経営会議をしてください。売上目標達成率、純利益、経費予算消化率、商品別利益、販売先別、制作進捗、発信、在庫、来月の重点3つを評価してください。売上目標:${db.settings.salesGoal||0}円 / 経費予算:${db.settings.budget||0}円`;if(aiMode==="idea")detail=`新しい企画案を5つ出し、実現しやすさ・売上可能性・準備量で評価してください。既存アイデア:${db.ideas.slice(0,20).map(x=>`${x.category} ${x.title} ${x.status}`).join(" / ")}`;return base+detail+`\n追加相談:${$("#question").value||"なし"}\n日本語で、優先順位→理由→具体的な次の行動の順で答えてください。`}
 async function copyPrompt(){let t=promptText();try{await navigator.clipboard.writeText(t)}catch{let a=document.createElement("textarea");a.value=t;document.body.appendChild(a);a.select();document.execCommand("copy");a.remove()}$("#aiStatus").textContent="相談文をコピーしました。"}
 $("#copyPrompt").onclick=copyPrompt;$("#openChat").onclick=async()=>{await copyPrompt();window.open("https://chatgpt.com/","_blank")}
 $("#backup").onclick=()=>{let b=new Blob([JSON.stringify(db,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="monreve_backup.json";a.click();URL.revokeObjectURL(a.href)};$("#restoreBtn").onclick=()=>$("#restoreFile").click();$("#restoreFile").onchange=e=>{let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{db=Object.assign(empty(),JSON.parse(r.result));save();render();alert("復元しました")}catch{alert("復元に失敗しました")}};r.readAsText(f)};$("#csv").onclick=()=>{let c=["date","channel","item","qty","amount","cost","fee","shipping","memo"],csv="\ufeff"+c.join(",")+"\n"+db.sales.map(r=>c.map(k=>`"${String(r[k]??"").replaceAll('"','""')}"`).join(",")).join("\n");let b=new Blob([csv],{type:"text/csv"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="monreve_sales.csv";a.click();URL.revokeObjectURL(a.href)};$("#print").onclick=()=>window.print();
@@ -225,11 +248,57 @@ function eventCalc(){
  $("#eventResult").innerHTML=`<div class="calc-result"><small>予想イベント利益</small><br><b>${yen(profit)}</b><div class="meta">損益分岐 ${be}個 / 見込売上 ${yen(price*qty)} / 固定費 ${yen(fixed)}</div></div>`;
 }
 
-function render(){let now=new Date();$("#date").textContent=now.toLocaleDateString("ja-JP",{year:"numeric",month:"long",day:"numeric",weekday:"short"});Object.keys(cfg).forEach(k=>{$("#"+k+"List").innerHTML=db[k].length?db[k].map(r=>card(k,r)).join(""):'<div class="item meta">まだ登録がありません。</div>'});let open=db.tasks.filter(x=>x.status!=="完了"),works=db.works.filter(x=>x.status==="制作中"),posts=db.content.filter(x=>!["公開済み","投稿済み"].includes(x.status)),low=db.inventory.filter(x=>Number(x.alert)>0&&Number(x.qty)<=Number(x.alert)),mk=now.toISOString().slice(0,7);let ms=db.sales.filter(x=>(x.date||"").startsWith(mk)).reduce((a,x)=>a+Number(x.amount||0),0),mg=db.sales.filter(x=>(x.date||"").startsWith(mk)).reduce((a,x)=>a+Number(x.amount||0)-Number(x.cost||0)-Number(x.fee||0)-Number(x.shipping||0),0),me=db.expenses.filter(x=>(x.date||"").startsWith(mk)).reduce((a,x)=>a+Number(x.amount||0)*(Number(x.ratio||100)/100),0),mn=mg-me,mm=ms?mn/ms*100:0;$("#hTasks").textContent=open.filter(x=>x.priority==="高").length||Math.min(open.length,3);$("#hWorks").textContent=works.length;$("#hPosts").textContent=posts.length;$("#hStock").textContent=low.length;$("#mSales").textContent=yen(ms);$("#mProfit").textContent=yen(mn);$("#mExpense").textContent=yen(me);$("#mMargin").textContent=mm.toFixed(1)+"%";let t=totals();$("#sSales").textContent=yen(t.sales);$("#sProfit").textContent=yen(t.net);$("#sMargin").textContent=t.margin.toFixed(1)+"%";$("#sCount").textContent=db.sales.length;let ins=localInsights();setInsight("#tips",ins);setInsight("#aiLocal",ins);setInsight("#taskInsight",ins.filter(x=>x[0].includes("期限")||x[0].includes("優先")).length?ins.filter(x=>x[0].includes("期限")||x[0].includes("優先")):[["タスク整理","高優先・期限ありから並べると判断しやすくなります。"]]);setInsight("#workInsight",ins.filter(x=>x[0].includes("制作")).length?ins.filter(x=>x[0].includes("制作")):[["制作整理","制作中作品を1つずつ完成→撮影→出品まで進めましょう。"]]);setInsight("#salesInsight",ins.filter(x=>x[0].includes("利益")).length?ins.filter(x=>x[0].includes("利益")):[["売上分析","売上データが増えると利益率・販売先の偏りを分析します。"]]);setInsight("#inventoryInsight",ins.filter(x=>x[0].includes("在庫")).length?ins.filter(x=>x[0].includes("在庫")):[["在庫状況","現在、大きな在庫警告はありません。"]]);setInsight("#contentInsight",ins.filter(x=>x[0].includes("発信")).length?ins.filter(x=>x[0].includes("発信")):[["発信整理","公開予定日を入れると、AIが今週の発信優先度を考えやすくなります。"]]);analysis();setAIMode();renderCalendar();$("#weeklyBrief").innerHTML=weeklyBrief();renderMonthlyChart();renderProductRanking()}
+
+function monthCurrentTotals(){
+ let now=new Date(),mk=now.toISOString().slice(0,7);
+ let sales=db.sales.filter(x=>(x.date||"").startsWith(mk)).reduce((a,x)=>a+Number(x.amount||0),0);
+ let gross=db.sales.filter(x=>(x.date||"").startsWith(mk)).reduce((a,x)=>a+Number(x.amount||0)-Number(x.cost||0)-Number(x.fee||0)-Number(x.shipping||0),0);
+ let exp=db.expenses.filter(x=>(x.date||"").startsWith(mk)).reduce((a,x)=>a+Number(x.amount||0)*(Number(x.ratio||100)/100),0);
+ return {sales,gross,exp,net:gross-exp};
+}
+function renderGoals(){
+ let t=monthCurrentTotals(),goal=Number(db.settings.salesGoal||0),budget=Number(db.settings.budget||0);
+ $("#goalSalesText").textContent=goal?yen(goal):"未設定";let sr=goal?Math.min(100,t.sales/goal*100):0;$("#goalSalesBar").style.width=sr+"%";$("#goalSalesRate").textContent=goal?`達成率 ${sr.toFixed(1)}% / 現在 ${yen(t.sales)}`:"売上目標を設定してください";
+ $("#budgetText").textContent=budget?yen(budget):"未設定";let br=budget?Math.min(100,t.exp/budget*100):0;$("#budgetBar").style.width=br+"%";$("#budgetRate").textContent=budget?`消化率 ${br.toFixed(1)}% / 現在 ${yen(t.exp)}`:"経費予算を設定してください";
+}
+function renderMonthlyMeeting(){
+ let t=monthCurrentTotals(),goal=Number(db.settings.salesGoal||0),budget=Number(db.settings.budget||0),goalRate=goal?t.sales/goal*100:0,budgetRate=budget?t.exp/budget*100:0;
+ let best={name:"まだなし",profit:0},map={};db.sales.forEach(x=>{let k=x.item||"未設定";map[k]=(map[k]||0)+Number(x.amount||0)-Number(x.cost||0)-Number(x.fee||0)-Number(x.shipping||0)});Object.entries(map).forEach(([k,v])=>{if(v>best.profit)best={name:k,profit:v}});
+ $("#monthlyMeeting").innerHTML=`<div class="monthly-meeting"><h4>今月の状況</h4><ul>
+ <li>売上：${yen(t.sales)} ${goal?`（目標達成率 ${goalRate.toFixed(1)}%）`:""}</li>
+ <li>純利益：${yen(t.net)}</li><li>経費：${yen(t.exp)} ${budget?`（予算消化率 ${budgetRate.toFixed(1)}%）`:""}</li>
+ <li>利益貢献トップ：${esc(best.name)} ${best.profit?yen(best.profit):""}</li>
+ <li>制作中：${db.works.filter(x=>x.status==="制作中").length}作品 / 在庫警告：${db.inventory.filter(x=>Number(x.alert)>0&&Number(x.qty)<=Number(x.alert)).length}件</li>
+ </ul></div>`;
+}
+function renderFlowInsight(){
+ let low=db.inventory.filter(x=>Number(x.alert)>0&&Number(x.qty)<=Number(x.alert));
+ let ready=db.works.filter(x=>["完成","撮影済み"].includes(x.status)&&x.listing!=="出品済み");
+ let selling=db.works.filter(x=>x.listing==="出品済み");
+ let msg=[];
+ if(low.length)msg.push(`<div class="link-card"><strong>① 在庫</strong><span class="meta">${low.length}件が補充候補。制作予定の作品に必要か確認。</span></div>`);
+ if(ready.length)msg.push(`<div class="link-card"><strong>② 制作</strong><span class="meta">${ready.length}作品が出品待ち。撮影・価格・説明文を整える段階です。</span></div>`);
+ if(selling.length)msg.push(`<div class="link-card"><strong>③ 販売</strong><span class="meta">${selling.length}作品が出品済み。売上データと照らして売れ筋を確認。</span></div>`);
+ if(!msg.length)msg.push(`<div class="link-card"><strong>連携状況</strong><span class="meta">在庫・制作・販売のデータが増えると、次に動かす場所を自動表示します。</span></div>`);
+ $("#flowInsight").innerHTML=msg.join("");
+}
+function renderChecklist(){
+ let items=db.settings.eventChecklist||[];
+ $("#eventChecklist").innerHTML=items.length?items.map((x,i)=>`<label class="check-row"><input type="checkbox" data-check="${i}" ${x.done?"checked":""}><span>${esc(typeof x==="string"?x:x.text)}</span></label>`).join(""):'<div class="meta">チェック項目がありません。</div>';
+}
+function normalizeChecklist(){db.settings.eventChecklist=(db.settings.eventChecklist||[]).map(x=>typeof x==="string"?{text:x,done:false}:x)}
+
+function render(){let now=new Date();$("#date").textContent=now.toLocaleDateString("ja-JP",{year:"numeric",month:"long",day:"numeric",weekday:"short"});Object.keys(cfg).forEach(k=>{$("#"+k+"List").innerHTML=db[k].length?db[k].map(r=>card(k,r)).join(""):'<div class="item meta">まだ登録がありません。</div>'});let open=db.tasks.filter(x=>x.status!=="完了"),works=db.works.filter(x=>x.status==="制作中"),posts=db.content.filter(x=>!["公開済み","投稿済み"].includes(x.status)),low=db.inventory.filter(x=>Number(x.alert)>0&&Number(x.qty)<=Number(x.alert)),mk=now.toISOString().slice(0,7);let ms=db.sales.filter(x=>(x.date||"").startsWith(mk)).reduce((a,x)=>a+Number(x.amount||0),0),mg=db.sales.filter(x=>(x.date||"").startsWith(mk)).reduce((a,x)=>a+Number(x.amount||0)-Number(x.cost||0)-Number(x.fee||0)-Number(x.shipping||0),0),me=db.expenses.filter(x=>(x.date||"").startsWith(mk)).reduce((a,x)=>a+Number(x.amount||0)*(Number(x.ratio||100)/100),0),mn=mg-me,mm=ms?mn/ms*100:0;$("#hTasks").textContent=open.filter(x=>x.priority==="高").length||Math.min(open.length,3);$("#hWorks").textContent=works.length;$("#hPosts").textContent=posts.length;$("#hStock").textContent=low.length;$("#mSales").textContent=yen(ms);$("#mProfit").textContent=yen(mn);$("#mExpense").textContent=yen(me);$("#mMargin").textContent=mm.toFixed(1)+"%";let t=totals();$("#sSales").textContent=yen(t.sales);$("#sProfit").textContent=yen(t.net);$("#sMargin").textContent=t.margin.toFixed(1)+"%";$("#sCount").textContent=db.sales.length;let ins=localInsights();setInsight("#tips",ins);setInsight("#aiLocal",ins);setInsight("#taskInsight",ins.filter(x=>x[0].includes("期限")||x[0].includes("優先")).length?ins.filter(x=>x[0].includes("期限")||x[0].includes("優先")):[["タスク整理","高優先・期限ありから並べると判断しやすくなります。"]]);setInsight("#workInsight",ins.filter(x=>x[0].includes("制作")).length?ins.filter(x=>x[0].includes("制作")):[["制作整理","制作中作品を1つずつ完成→撮影→出品まで進めましょう。"]]);setInsight("#salesInsight",ins.filter(x=>x[0].includes("利益")).length?ins.filter(x=>x[0].includes("利益")):[["売上分析","売上データが増えると利益率・販売先の偏りを分析します。"]]);setInsight("#inventoryInsight",ins.filter(x=>x[0].includes("在庫")).length?ins.filter(x=>x[0].includes("在庫")):[["在庫状況","現在、大きな在庫警告はありません。"]]);setInsight("#contentInsight",ins.filter(x=>x[0].includes("発信")).length?ins.filter(x=>x[0].includes("発信")):[["発信整理","公開予定日を入れると、AIが今週の発信優先度を考えやすくなります。"]]);analysis();setAIMode();renderCalendar();$("#weeklyBrief").innerHTML=weeklyBrief();renderMonthlyChart();renderProductRanking();renderGoals();renderMonthlyMeeting();renderFlowInsight();normalizeChecklist();renderChecklist()}
 $("#calPrev").onclick=()=>{calDate=new Date(calDate.getFullYear(),calDate.getMonth()-1,1);renderCalendar()};
 $("#calNext").onclick=()=>{calDate=new Date(calDate.getFullYear(),calDate.getMonth()+1,1);renderCalendar()};
 $("#priceCalc").onclick=priceCalc;
 $("#eventCalc").onclick=eventCalc;
+
+$("#setSalesGoal").onclick=()=>{let v=prompt("今月の売上目標を入力してください",db.settings.salesGoal||"");if(v!==null){db.settings.salesGoal=Number(v||0);save();renderGoals();renderMonthlyMeeting()}};
+$("#setBudget").onclick=()=>{let v=prompt("今月の経費予算を入力してください",db.settings.budget||"");if(v!==null){db.settings.budget=Number(v||0);save();renderGoals();renderMonthlyMeeting()}};
+$("#resetChecklist").onclick=()=>{normalizeChecklist();db.settings.eventChecklist=db.settings.eventChecklist.map(x=>({...x,done:false}));save();renderChecklist()};
+$("#addChecklistItem").onclick=()=>{let v=prompt("追加する準備項目を入力してください");if(v){normalizeChecklist();db.settings.eventChecklist.push({text:v,done:false});save();renderChecklist()}};
+document.addEventListener("change",e=>{let c=e.target.closest("[data-check]");if(c){normalizeChecklist();let i=Number(c.dataset.check);if(db.settings.eventChecklist[i]){db.settings.eventChecklist[i].done=c.checked;save()}}});
 if("serviceWorker"in navigator&&location.protocol!=="file:")navigator.serviceWorker.register("./sw.js").catch(()=>{});render();
 </script>
 </body></html>
