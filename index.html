@@ -173,7 +173,11 @@ header{padding-top:calc(10px + env(safe-area-inset-top));margin-bottom:14px}.dat
 
 <section id="ai" class="page"><div class="section-head"><h2>AIマネージャー</h2></div><div class="card"><h3>相談したいこと</h3><div class="ai-menu">
 <button data-ai-mode="today">今日の優先<small>何から始める？</small></button><button data-ai-mode="sales">売上分析<small>利益・販売先・商品</small></button><button data-ai-mode="works">制作相談<small>止まっている作品・次工程</small></button><button data-ai-mode="content">発信企画<small>note・YouTube・配信</small></button><button data-ai-mode="weekly">週次レビュー<small>今週→来週</small></button><button data-ai-mode="monthly">月次経営会議<small>売上・利益・経費・目標</small></button><button data-ai-mode="orders">注文整理<small>納期・入金・発送</small></button><button data-ai-mode="nextproduct">次に作るもの<small>売れ筋・在庫・制作状況</small></button><button data-ai-mode="customers">顧客分析<small>リピーター・客単価</small></button><button data-ai-mode="media">発信分析<small>媒体・反応・売上効果</small></button><button data-ai-mode="closing">月次締め<small>会計・未処理・確認事項</small></button><button data-ai-mode="productstrategy">作品戦略<small>採算・再制作・売れ筋</small></button><button data-ai-mode="salesstrategy">販売戦略<small>販売先・価格帯・利益</small></button><button data-ai-mode="eventdecision">イベント判断<small>採算・出店価値</small></button><button data-ai-mode="improvement">今月の改善案<small>次に変えること</small></button><button data-ai-mode="reorder">仕入れ判断<small>在庫・売れ筋・補充</small></button><button data-ai-mode="plan30">30日計画<small>制作・販売・発信</small></button><button data-ai-mode="idea">新企画<small>新しいアイデア検討</small></button>
-</div></div><div class="ai"><div id="aiModeLabel">今日の優先</div><textarea id="question" placeholder="追加で相談したいことがあれば入力"></textarea><div class="ai-actions"><button class="a" id="copyPrompt">相談文を作る</button><button class="b" id="openChat">ChatGPTを開く</button></div><div id="aiStatus" style="font-size:11px;margin-top:8px"></div></div><div class="card"><h3>アプリ内の分析</h3><div id="aiLocal"></div></div></section>
+</div></div><div class="ai"><div id="aiModeLabel">今日の優先</div><textarea id="question" placeholder="追加で相談したいことがあれば入力"></textarea><div class="ai-actions"><button class="a" id="copyPrompt">相談文を作る</button><button class="b" id="openChatApp">ChatGPTアプリを開く</button></div>
+<button class="b" id="openChatWeb" style="width:100%;margin-top:8px;border:0;border-radius:13px;padding:12px;font-weight:800">Safari版ChatGPTを開く</button><div id="aiStatus" style="font-size:11px;margin-top:8px"></div></div><div class="card"><h3>ChatGPT連携</h3>
+<div class="insight"><strong>おすすめ：ChatGPTアプリ</strong><p>「ChatGPTアプリを開く」を押すと相談文を先にコピーし、iPhoneのChatGPTアプリを開くことを試みます。開いたら入力欄を長押しして「ペースト」してください。Safari版で毎回ログインする手間を減らせます。</p></div>
+<div class="meta" style="margin-top:8px">※ iPhoneの設定によってはアプリではなくWebページが開く場合があります。その場合は下のSafari版ボタンを使えます。</div></div>
+<div class="card"><h3>アプリ内の分析</h3><div id="aiLocal"></div></div></section>
 
 <section id="ideas" class="page"><div class="section-head"><h2>企画・アイデア</h2><button class="add" data-add="ideas">＋</button></div><div id="ideasList" class="list"></div></section>
 <section id="inventory" class="page"><div class="section-head"><h2>在庫</h2><button class="add" data-add="inventory">＋</button></div><div class="card"><h3>在庫AI</h3><div id="inventoryInsight"></div></div><div class="card"><h3>在庫 → 制作 → 販売 連携</h3><div id="flowInsight"></div></div><div class="card"><h3>仕入れ判断AI</h3><div id="reorderAI"></div><button class="gold" data-page="ai" data-ai-mode="reorder">ChatGPTで仕入れ判断</button></div>
@@ -266,7 +270,17 @@ if(aiMode==="eventdecision")detail=`イベント出店判断をしてくださ�
 if(aiMode==="improvement")detail=`今月の改善案を考えてください。売上目標、利益率、経費、制作中、未出品、発信、注文、在庫を横断して、来月に向けて変えるべきことを重要度順に5つ提案してください。`;if(aiMode==="reorder")detail=`仕入れ判断をしてください。売れ筋商品、在庫警告、制作予定、材料在庫を見て、今買うべきもの・今は買わなくてよいもの・予算上限の考え方を提案してください。`;
 if(aiMode==="plan30")detail=`今後30日の実行計画を作ってください。販売、制作、出品、発信、イベント、注文対応を週ごとに分け、毎週の重点3つと目標を設定してください。`;if(aiMode==="idea")detail=`新しい企画案を5つ出し、実現しやすさ・売上可能性・準備量で評価してください。既存アイデア:${db.ideas.slice(0,20).map(x=>`${x.category} ${x.title} ${x.status}`).join(" / ")}`;return base+detail+`\n追加相談:${$("#question").value||"なし"}\n日本語で、優先順位→理由→具体的な次の行動の順で答えてください。`}
 async function copyPrompt(){let t=promptText();try{await navigator.clipboard.writeText(t)}catch{let a=document.createElement("textarea");a.value=t;document.body.appendChild(a);a.select();document.execCommand("copy");a.remove()}$("#aiStatus").textContent="相談文をコピーしました。"}
-$("#copyPrompt").onclick=copyPrompt;$("#openChat").onclick=async()=>{await copyPrompt();window.open("https://chatgpt.com/","_blank")}
+$("#copyPrompt").onclick=copyPrompt;
+$("#openChatApp").onclick=async()=>{
+ await copyPrompt();
+ $("#aiStatus").textContent="相談文をコピーしました。ChatGPTアプリを開きます。開いたらペーストしてください。";
+ // Universal Link. iOSでChatGPTアプリが関連付けられていればアプリへ遷移する可能性があります。
+ window.location.href="https://chatgpt.com/";
+};
+$("#openChatWeb").onclick=async()=>{
+ await copyPrompt();
+ window.open("https://chatgpt.com/","_blank");
+};
 $("#backup").onclick=()=>{let b=new Blob([JSON.stringify(db,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="monreve_backup.json";a.click();URL.revokeObjectURL(a.href)};$("#restoreBtn").onclick=()=>$("#restoreFile").click();$("#restoreFile").onchange=e=>{let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{db=Object.assign(empty(),JSON.parse(r.result));save();render();alert("復元しました")}catch{alert("復元に失敗しました")}};r.readAsText(f)};$("#csv").onclick=()=>{let c=["date","channel","item","qty","amount","cost","fee","shipping","memo"],csv="\ufeff"+c.join(",")+"\n"+db.sales.map(r=>c.map(k=>`"${String(r[k]??"").replaceAll('"','""')}"`).join(",")).join("\n");let b=new Blob([csv],{type:"text/csv"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="monreve_sales.csv";a.click();URL.revokeObjectURL(a.href)};$("#print").onclick=()=>window.print();
 
 function dateMap(){

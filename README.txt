@@ -1,12 +1,13 @@
-monrêve Manager v10
+monrêve Manager v11
 追加:
-・30日アクションプラン
-・仕入れ判断AI
-・販売機会ロス検知
-・カテゴリ別採算分析
-・発信→売上つながり分析
-・AI「仕入れ判断」「30日計画」モード
-・v9までの全機能を維持
+・AI画面に「ChatGPTアプリを開く」
+・相談文を自動コピーしてからChatGPTを開く
+・Safari版ChatGPTボタンも残す
+・ログイン済みChatGPTアプリを使いやすくする
+・v10までの機能を維持
+
+注意:
+iOSのUniversal Linkの扱いにより、必ずChatGPTアプリが開くとは限りません。
+その場合はSafari版ボタンを使用してください。
 
 GitHubでは index.html だけ差し替えてください。
-既存データは引き継ぎます。
