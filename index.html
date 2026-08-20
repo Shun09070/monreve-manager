@@ -34,12 +34,31 @@ header{padding-top:calc(10px + env(safe-area-inset-top));margin-bottom:14px}.dat
 .field{display:grid;gap:5px;margin:10px 0}.field label{font-size:11px;color:var(--muted);font-weight:700}.field input,.field select,.field textarea{width:100%;border:1px solid var(--line);border-radius:12px;padding:11px;background:#fff}.field textarea{min-height:82px}.save{width:100%;border:0;border-radius:13px;background:var(--green);color:#fff;padding:13px;font-weight:800}
 .analysis{margin:10px 0}.line{display:flex;justify-content:space-between;font-size:12px;gap:10px}.bar{height:8px;background:#e8ede9;border-radius:999px;margin-top:6px;overflow:hidden}.bar i{display:block;height:100%;background:var(--green)}
 </style>
+
+<style>
+.calendar-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:13px;margin-top:10px}
+.cal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.cal-head button{border:1px solid var(--line);background:#fff;border-radius:10px;padding:6px 10px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+.cal-grid .dow{font-size:9px;color:var(--muted);padding:4px 0}
+.cal-day{min-height:48px;border-radius:10px;padding:4px 2px;font-size:11px;background:#fafbf9}
+.cal-day.today{outline:2px solid var(--green)}.cal-day.has{background:#edf5f1}
+.dots{display:flex;justify-content:center;gap:2px;margin-top:4px}.dot{width:5px;height:5px;border-radius:50%;background:var(--green)}.dot.gold{background:#d89b35}.dot.blue{background:#5c7fc8}
+.edit{border:0;background:transparent;color:var(--green);font-size:11px;margin-right:6px}
+.weekly-box{background:#fff;border:1px solid var(--line);border-radius:17px;padding:13px;margin-top:8px}.weekly-box h4{margin:0 0 6px}.weekly-box ul{margin:0;padding-left:18px;font-size:12px;line-height:1.65;color:var(--muted)}
+</style>
+
 </head><body>
 <div class="app">
 <header><div class="date" id="date"></div><div class="title" id="title">ホーム</div></header>
 <section id="home" class="page active">
 <div class="hero"><small>今日のmonrêve</small><h2>創作を、少しずつ前へ。</h2><div class="hero-grid"><div class="hero-stat"><b id="hTasks">0</b><span>優先タスク</span></div><div class="hero-stat"><b id="hWorks">0</b><span>制作中</span></div><div class="hero-stat"><b id="hPosts">0</b><span>投稿予定</span></div><div class="hero-stat"><b id="hStock">0</b><span>在庫警告</span></div></div><button class="gold" data-page="ai" data-ai-mode="today">今日何を優先する？</button></div>
 <div class="card"><h3>今月</h3><div class="kpi"><div><small>売上</small><b id="mSales">¥0</b></div><div><small>純利益</small><b id="mProfit">¥0</b></div><div><small>経費</small><b id="mExpense">¥0</b></div><div><small>利益率</small><b id="mMargin">0%</b></div></div></div>
+<div class="card"><h3>予定カレンダー</h3>
+<div class="calendar-card"><div class="cal-head"><button id="calPrev">‹</button><strong id="calLabel"></strong><button id="calNext">›</button></div>
+<div class="cal-grid" id="calendar"></div></div>
+<div class="meta" style="margin-top:8px">● タスク期限　● 発信予定　● イベント</div></div>
+<div class="card"><h3>AI週次ブリーフィング</h3><div id="weeklyBrief"></div><button class="gold" data-page="ai" data-ai-mode="weekly">ChatGPTで週次会議</button></div>
 <div class="card"><h3>AIマネージャーから</h3><div id="tips"></div></div>
 <div class="card"><h3>すぐ登録</h3><div class="quick"><button data-add="tasks">＋ タスク<small>期限・優先度</small></button><button data-add="works">＋ 制作<small>作品・撮影・出品</small></button><button data-add="sales">＋ 売上<small>利益を自動計算</small></button><button data-add="content">＋ 発信<small>配信・note・YouTube</small></button></div></div>
 </section>
@@ -70,7 +89,7 @@ const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)], y
 const esc=v=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
 const KEY="monreve_manager_sites_ready_v1";
 const empty=()=>({tasks:[],works:[],sales:[],ideas:[],inventory:[],expenses:[],events:[],content:[],meetings:[]});
-let db=load(),kind=null,aiMode="today";
+let db=load(),kind=null,aiMode="today",editingId=null,calDate=new Date();
 function load(){try{return Object.assign(empty(),JSON.parse(localStorage.getItem(KEY)||"{}"))}catch{return empty()}}
 function save(){localStorage.setItem(KEY,JSON.stringify(db))}
 function nid(){return Date.now()+Math.floor(Math.random()*9999)}
@@ -87,12 +106,25 @@ meetings:["会議記録",[["title","タイトル","text"],["date","日付","date
 };
 const titles={home:"ホーム",tasks:"タスク",works:"制作",sales:"販売",ai:"AIマネージャー",ideas:"企画・アイデア",inventory:"在庫",expenses:"経費・会計",events:"出店・販売企画",content:"配信・発信",meetings:"会議",data:"データ管理"};
 function page(id){$$(".page").forEach(p=>p.classList.toggle("active",p.id===id));$$("[data-page]").forEach(b=>b.classList.toggle("active",b.dataset.page===id));$("#title").textContent=titles[id]||"monrêve";$("#moreSheet").classList.remove("active");if(id==="sales")analysis();window.scrollTo(0,0)}
-function openForm(k){kind=k;$("#formTitle").textContent=cfg[k][0];$("#fields").innerHTML=cfg[k][1].map(([n,l,t,o])=>`<div class="field"><label>${l}</label>${t==="select"?`<select name="${n}">${o.map(v=>`<option>${v}</option>`).join("")}</select>`:t==="textarea"?`<textarea name="${n}"></textarea>`:`<input name="${n}" type="${t}" ${["title","name","item","desc"].includes(n)?"required":""}>`}</div>`).join("");$("#modal").classList.add("active")}
+function openForm(k,record=null){
+ kind=k; editingId=record?record.id:null; $("#formTitle").textContent=(record?"編集：":"")+cfg[k][0];
+ $("#fields").innerHTML=cfg[k][1].map(([n,l,t,o])=>{
+   let val=record?(record[n]??""):"";
+   if(t==="select")return `<div class="field"><label>${l}</label><select name="${n}">${o.map(v=>`<option ${String(v)===String(val)?"selected":""}>${v}</option>`).join("")}</select></div>`;
+   if(t==="textarea")return `<div class="field"><label>${l}</label><textarea name="${n}">${esc(val)}</textarea></div>`;
+   return `<div class="field"><label>${l}</label><input name="${n}" type="${t}" value="${esc(val)}" ${["title","name","item","desc"].includes(n)?"required":""}></div>`;
+ }).join("");
+ $("#modal").classList.add("active");
+}
+window.editItem=(k,i)=>{let r=db[k].find(x=>x.id===i);if(r)openForm(k,r)}
 document.addEventListener("click",e=>{let p=e.target.closest("[data-page]");if(p){page(p.dataset.page)}let a=e.target.closest("[data-add]");if(a){openForm(a.dataset.add)}let m=e.target.closest("[data-ai-mode]");if(m){aiMode=m.dataset.aiMode;setAIMode()}});
 $("#more").onclick=()=>$("#moreSheet").classList.add("active");$("#closeMore").onclick=()=>$("#moreSheet").classList.remove("active");$("#closeModal").onclick=()=>$("#modal").classList.remove("active");
-$("#form").onsubmit=e=>{e.preventDefault();let x=Object.fromEntries(new FormData(e.target).entries());x.id=nid();x.createdAt=new Date().toISOString();db[kind].unshift(x);save();$("#modal").classList.remove("active");e.target.reset();render()};
+$("#form").onsubmit=e=>{e.preventDefault();let x=Object.fromEntries(new FormData(e.target).entries());
+if(editingId){let idx=db[kind].findIndex(v=>v.id===editingId);if(idx>=0)db[kind][idx]={...db[kind][idx],...x,updatedAt:new Date().toISOString()};}
+else{x.id=nid();x.createdAt=new Date().toISOString();db[kind].unshift(x);}
+save();editingId=null;$("#modal").classList.remove("active");e.target.reset();render()};
 window.del=(k,i)=>{if(confirm("削除しますか？")){db[k]=db[k].filter(x=>x.id!==i);save();render()}}
-function card(k,r){let d=`<button class="delete" onclick="del('${k}',${r.id})">削除</button>`;if(k==="tasks")return `<div class="item"><div class="item-top"><h4>${esc(r.title)}</h4>${d}</div><div class="meta">${esc(r.memo)}</div><span class="badge">${esc(r.status)}</span><span class="badge">優先 ${esc(r.priority)}</span>${r.due?`<span class="badge">${esc(r.due)}</span>`:""}</div>`;if(k==="works")return `<div class="item"><div class="item-top"><h4>${esc(r.name)}</h4>${d}</div><div class="meta">${esc(r.category)} / ${esc(r.status)}<br>原価 ${yen(r.cost)}・販売 ${yen(r.price)}<br>撮影 ${esc(r.photo)} / 出品 ${esc(r.listing)}</div></div>`;if(k==="sales"){let p=Number(r.amount||0)-Number(r.cost||0)-Number(r.fee||0)-Number(r.shipping||0);return `<div class="item"><div class="item-top"><h4>${esc(r.item)}</h4>${d}</div><div class="meta">${esc(r.date)} / ${esc(r.channel)}<br>売上 ${yen(r.amount)}・利益 ${yen(p)}</div></div>`}if(k==="inventory"){let low=Number(r.alert)>0&&Number(r.qty)<=Number(r.alert);return `<div class="item"><div class="item-top"><h4>${esc(r.name)} ${low?"⚠️":""}</h4>${d}</div><div class="meta">${esc(r.category)} / ${esc(r.qty)} ${esc(r.unit)}</div>${low?'<span class="badge danger">補充候補</span>':""}</div>`}if(k==="expenses")return `<div class="item"><div class="item-top"><h4>${esc(r.desc)}</h4>${d}</div><div class="meta">${esc(r.date)} / ${esc(r.category)} / ${yen(r.amount)}</div></div>`;if(k==="events")return `<div class="item"><div class="item-top"><h4>${esc(r.name)}</h4>${d}</div><div class="meta">${esc(r.type)} / ${esc(r.date)} / ${esc(r.place)}</div></div>`;if(k==="content")return `<div class="item"><div class="item-top"><h4>${esc(r.title)}</h4>${d}</div><div class="meta">${esc(r.platform)} / ${esc(r.publish)}<br>${esc(r.memo)}</div><span class="badge">${esc(r.status)}</span></div>`;if(k==="ideas")return `<div class="item"><div class="item-top"><h4>${esc(r.title)}</h4>${d}</div><div class="meta">${esc(r.memo)}</div></div>`;return `<div class="item"><div class="item-top"><h4>${esc(r.title)}</h4>${d}</div><div class="meta">${esc(r.date)}<br>${esc(r.summary)}</div></div>`}
+function card(k,r){let d=`<span><button class="edit" onclick="editItem(\'${k}\',${r.id})">編集</button><button class="delete" onclick="del(\'${k}\',${r.id})">削除</button></span>`;if(k==="tasks")return `<div class="item"><div class="item-top"><h4>${esc(r.title)}</h4>${d}</div><div class="meta">${esc(r.memo)}</div><span class="badge">${esc(r.status)}</span><span class="badge">優先 ${esc(r.priority)}</span>${r.due?`<span class="badge">${esc(r.due)}</span>`:""}</div>`;if(k==="works")return `<div class="item"><div class="item-top"><h4>${esc(r.name)}</h4>${d}</div><div class="meta">${esc(r.category)} / ${esc(r.status)}<br>原価 ${yen(r.cost)}・販売 ${yen(r.price)}<br>撮影 ${esc(r.photo)} / 出品 ${esc(r.listing)}</div></div>`;if(k==="sales"){let p=Number(r.amount||0)-Number(r.cost||0)-Number(r.fee||0)-Number(r.shipping||0);return `<div class="item"><div class="item-top"><h4>${esc(r.item)}</h4>${d}</div><div class="meta">${esc(r.date)} / ${esc(r.channel)}<br>売上 ${yen(r.amount)}・利益 ${yen(p)}</div></div>`}if(k==="inventory"){let low=Number(r.alert)>0&&Number(r.qty)<=Number(r.alert);return `<div class="item"><div class="item-top"><h4>${esc(r.name)} ${low?"⚠️":""}</h4>${d}</div><div class="meta">${esc(r.category)} / ${esc(r.qty)} ${esc(r.unit)}</div>${low?'<span class="badge danger">補充候補</span>':""}</div>`}if(k==="expenses")return `<div class="item"><div class="item-top"><h4>${esc(r.desc)}</h4>${d}</div><div class="meta">${esc(r.date)} / ${esc(r.category)} / ${yen(r.amount)}</div></div>`;if(k==="events")return `<div class="item"><div class="item-top"><h4>${esc(r.name)}</h4>${d}</div><div class="meta">${esc(r.type)} / ${esc(r.date)} / ${esc(r.place)}</div></div>`;if(k==="content")return `<div class="item"><div class="item-top"><h4>${esc(r.title)}</h4>${d}</div><div class="meta">${esc(r.platform)} / ${esc(r.publish)}<br>${esc(r.memo)}</div><span class="badge">${esc(r.status)}</span></div>`;if(k==="ideas")return `<div class="item"><div class="item-top"><h4>${esc(r.title)}</h4>${d}</div><div class="meta">${esc(r.memo)}</div></div>`;return `<div class="item"><div class="item-top"><h4>${esc(r.title)}</h4>${d}</div><div class="meta">${esc(r.date)}<br>${esc(r.summary)}</div></div>`}
 function totals(){let sales=db.sales.reduce((a,x)=>a+Number(x.amount||0),0),gross=db.sales.reduce((a,x)=>a+Number(x.amount||0)-Number(x.cost||0)-Number(x.fee||0)-Number(x.shipping||0),0),exp=db.expenses.reduce((a,x)=>a+Number(x.amount||0)*(Number(x.ratio||100)/100),0);return{sales,gross,exp,net:gross-exp,margin:sales?((gross-exp)/sales*100):0}}
 function localInsights(){let now=new Date(),today=now.toISOString().slice(0,10),open=db.tasks.filter(x=>x.status!=="完了"),urgent=open.filter(x=>x.due&&x.due<=today),high=open.filter(x=>x.priority==="高"),low=db.inventory.filter(x=>Number(x.alert)>0&&Number(x.qty)<=Number(x.alert)),stalled=db.works.filter(x=>x.status==="制作中"),pending=db.content.filter(x=>!["公開済み","投稿済み"].includes(x.status)),t=totals(),ins=[];if(urgent.length)ins.push(["期限注意",`${urgent.length}件が期限到来・超過です。`]);if(high.length>=3)ins.push(["高優先が多め",`高優先が${high.length}件あります。今日やるものを3件以内に絞るのがおすすめです。`]);if(stalled.length>=3)ins.push(["制作中が多め",`${stalled.length}作品が制作中です。完成→撮影→出品まで1作品ずつ終わらせると進みやすいです。`]);if(low.length)ins.push(["在庫警告",`${low.length}件が警告ライン以下です。制作予定と照らして補充を検討してください。`]);if(t.sales>0&&t.margin<35)ins.push(["利益率注意",`現在の純利益率は${t.margin.toFixed(1)}%です。原価・手数料・送料・価格設定を見直す候補があります。`]);if(pending.length>=5)ins.push(["発信が滞留",`未公開の発信企画が${pending.length}件あります。媒体を絞って今週分を決めると進めやすいです。`]);if(!ins.length)ins.push(["順調です","大きな警告はありません。次は売上・制作・発信のどれを伸ばすか選ぶ段階です。"]);return ins}
 function setInsight(sel,items){$(sel).innerHTML=items.map(([h,p])=>`<div class="insight"><strong>${esc(h)}</strong><p>${esc(p)}</p></div>`).join("")}
@@ -103,7 +135,45 @@ function promptText(){let open=db.tasks.filter(x=>x.status!=="完了"),low=db.in
 async function copyPrompt(){let t=promptText();try{await navigator.clipboard.writeText(t)}catch{let a=document.createElement("textarea");a.value=t;document.body.appendChild(a);a.select();document.execCommand("copy");a.remove()}$("#aiStatus").textContent="相談文をコピーしました。"}
 $("#copyPrompt").onclick=copyPrompt;$("#openChat").onclick=async()=>{await copyPrompt();window.open("https://chatgpt.com/","_blank")}
 $("#backup").onclick=()=>{let b=new Blob([JSON.stringify(db,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="monreve_backup.json";a.click();URL.revokeObjectURL(a.href)};$("#restoreBtn").onclick=()=>$("#restoreFile").click();$("#restoreFile").onchange=e=>{let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{db=Object.assign(empty(),JSON.parse(r.result));save();render();alert("復元しました")}catch{alert("復元に失敗しました")}};r.readAsText(f)};$("#csv").onclick=()=>{let c=["date","channel","item","qty","amount","cost","fee","shipping","memo"],csv="\ufeff"+c.join(",")+"\n"+db.sales.map(r=>c.map(k=>`"${String(r[k]??"").replaceAll('"','""')}"`).join(",")).join("\n");let b=new Blob([csv],{type:"text/csv"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="monreve_sales.csv";a.click();URL.revokeObjectURL(a.href)};$("#print").onclick=()=>window.print();
-function render(){let now=new Date();$("#date").textContent=now.toLocaleDateString("ja-JP",{year:"numeric",month:"long",day:"numeric",weekday:"short"});Object.keys(cfg).forEach(k=>{$("#"+k+"List").innerHTML=db[k].length?db[k].map(r=>card(k,r)).join(""):'<div class="item meta">まだ登録がありません。</div>'});let open=db.tasks.filter(x=>x.status!=="完了"),works=db.works.filter(x=>x.status==="制作中"),posts=db.content.filter(x=>!["公開済み","投稿済み"].includes(x.status)),low=db.inventory.filter(x=>Number(x.alert)>0&&Number(x.qty)<=Number(x.alert)),mk=now.toISOString().slice(0,7);let ms=db.sales.filter(x=>(x.date||"").startsWith(mk)).reduce((a,x)=>a+Number(x.amount||0),0),mg=db.sales.filter(x=>(x.date||"").startsWith(mk)).reduce((a,x)=>a+Number(x.amount||0)-Number(x.cost||0)-Number(x.fee||0)-Number(x.shipping||0),0),me=db.expenses.filter(x=>(x.date||"").startsWith(mk)).reduce((a,x)=>a+Number(x.amount||0)*(Number(x.ratio||100)/100),0),mn=mg-me,mm=ms?mn/ms*100:0;$("#hTasks").textContent=open.filter(x=>x.priority==="高").length||Math.min(open.length,3);$("#hWorks").textContent=works.length;$("#hPosts").textContent=posts.length;$("#hStock").textContent=low.length;$("#mSales").textContent=yen(ms);$("#mProfit").textContent=yen(mn);$("#mExpense").textContent=yen(me);$("#mMargin").textContent=mm.toFixed(1)+"%";let t=totals();$("#sSales").textContent=yen(t.sales);$("#sProfit").textContent=yen(t.net);$("#sMargin").textContent=t.margin.toFixed(1)+"%";$("#sCount").textContent=db.sales.length;let ins=localInsights();setInsight("#tips",ins);setInsight("#aiLocal",ins);setInsight("#taskInsight",ins.filter(x=>x[0].includes("期限")||x[0].includes("優先")).length?ins.filter(x=>x[0].includes("期限")||x[0].includes("優先")):[["タスク整理","高優先・期限ありから並べると判断しやすくなります。"]]);setInsight("#workInsight",ins.filter(x=>x[0].includes("制作")).length?ins.filter(x=>x[0].includes("制作")):[["制作整理","制作中作品を1つずつ完成→撮影→出品まで進めましょう。"]]);setInsight("#salesInsight",ins.filter(x=>x[0].includes("利益")).length?ins.filter(x=>x[0].includes("利益")):[["売上分析","売上データが増えると利益率・販売先の偏りを分析します。"]]);setInsight("#inventoryInsight",ins.filter(x=>x[0].includes("在庫")).length?ins.filter(x=>x[0].includes("在庫")):[["在庫状況","現在、大きな在庫警告はありません。"]]);setInsight("#contentInsight",ins.filter(x=>x[0].includes("発信")).length?ins.filter(x=>x[0].includes("発信")):[["発信整理","公開予定日を入れると、AIが今週の発信優先度を考えやすくなります。"]]);analysis();setAIMode()}
+
+function dateMap(){
+ let map={};
+ const add=(date,type,title)=>{if(!date)return;(map[date]??=[]).push({type,title})};
+ db.tasks.filter(x=>x.status!=="完了").forEach(x=>add(x.due,"task",x.title));
+ db.content.filter(x=>!["公開済み","投稿済み"].includes(x.status)).forEach(x=>add(x.publish,"content",x.title));
+ db.events.filter(x=>!["終了","中止"].includes(x.status)).forEach(x=>add(x.date,"event",x.name));
+ return map;
+}
+function renderCalendar(){
+ let y=calDate.getFullYear(),m=calDate.getMonth(),first=new Date(y,m,1),last=new Date(y,m+1,0),start=first.getDay(),map=dateMap(),today=new Date().toISOString().slice(0,10);
+ $("#calLabel").textContent=`${y}年${m+1}月`;
+ let h=["日","月","火","水","木","金","土"].map(x=>`<div class="dow">${x}</div>`).join("");
+ for(let i=0;i<start;i++)h+='<div></div>';
+ for(let d=1;d<=last.getDate();d++){
+   let key=`${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`,ev=map[key]||[];
+   let dots=ev.slice(0,3).map(e=>`<i class="dot ${e.type==="content"?"gold":e.type==="event"?"blue":""}"></i>`).join("");
+   h+=`<div class="cal-day ${key===today?"today":""} ${ev.length?"has":""}" title="${esc(ev.map(e=>e.title).join(" / "))}">${d}<div class="dots">${dots}</div></div>`;
+ }
+ $("#calendar").innerHTML=h;
+}
+function weeklyBrief(){
+ let now=new Date(),end=new Date(now);end.setDate(now.getDate()+7);let endKey=end.toISOString().slice(0,10),today=now.toISOString().slice(0,10);
+ let due=db.tasks.filter(x=>x.status!=="完了"&&x.due&&x.due>=today&&x.due<=endKey);
+ let overdue=db.tasks.filter(x=>x.status!=="完了"&&x.due&&x.due<today);
+ let works=db.works.filter(x=>x.status==="制作中");
+ let posts=db.content.filter(x=>!["公開済み","投稿済み"].includes(x.status)&&x.publish&&x.publish>=today&&x.publish<=endKey);
+ let events=db.events.filter(x=>!["終了","中止"].includes(x.status)&&x.date&&x.date>=today&&x.date<=endKey);
+ let t=totals();
+ return `<div class="weekly-box"><h4>今週の確認</h4><ul>
+ <li>今週期限のタスク：${due.length}件</li><li>期限超過：${overdue.length}件</li>
+ <li>制作中：${works.length}作品</li><li>今週の発信予定：${posts.length}件</li>
+ <li>今週のイベント：${events.length}件</li><li>累計純利益：${yen(t.net)}</li>
+ </ul></div>`;
+}
+
+function render(){let now=new Date();$("#date").textContent=now.toLocaleDateString("ja-JP",{year:"numeric",month:"long",day:"numeric",weekday:"short"});Object.keys(cfg).forEach(k=>{$("#"+k+"List").innerHTML=db[k].length?db[k].map(r=>card(k,r)).join(""):'<div class="item meta">まだ登録がありません。</div>'});let open=db.tasks.filter(x=>x.status!=="完了"),works=db.works.filter(x=>x.status==="制作中"),posts=db.content.filter(x=>!["公開済み","投稿済み"].includes(x.status)),low=db.inventory.filter(x=>Number(x.alert)>0&&Number(x.qty)<=Number(x.alert)),mk=now.toISOString().slice(0,7);let ms=db.sales.filter(x=>(x.date||"").startsWith(mk)).reduce((a,x)=>a+Number(x.amount||0),0),mg=db.sales.filter(x=>(x.date||"").startsWith(mk)).reduce((a,x)=>a+Number(x.amount||0)-Number(x.cost||0)-Number(x.fee||0)-Number(x.shipping||0),0),me=db.expenses.filter(x=>(x.date||"").startsWith(mk)).reduce((a,x)=>a+Number(x.amount||0)*(Number(x.ratio||100)/100),0),mn=mg-me,mm=ms?mn/ms*100:0;$("#hTasks").textContent=open.filter(x=>x.priority==="高").length||Math.min(open.length,3);$("#hWorks").textContent=works.length;$("#hPosts").textContent=posts.length;$("#hStock").textContent=low.length;$("#mSales").textContent=yen(ms);$("#mProfit").textContent=yen(mn);$("#mExpense").textContent=yen(me);$("#mMargin").textContent=mm.toFixed(1)+"%";let t=totals();$("#sSales").textContent=yen(t.sales);$("#sProfit").textContent=yen(t.net);$("#sMargin").textContent=t.margin.toFixed(1)+"%";$("#sCount").textContent=db.sales.length;let ins=localInsights();setInsight("#tips",ins);setInsight("#aiLocal",ins);setInsight("#taskInsight",ins.filter(x=>x[0].includes("期限")||x[0].includes("優先")).length?ins.filter(x=>x[0].includes("期限")||x[0].includes("優先")):[["タスク整理","高優先・期限ありから並べると判断しやすくなります。"]]);setInsight("#workInsight",ins.filter(x=>x[0].includes("制作")).length?ins.filter(x=>x[0].includes("制作")):[["制作整理","制作中作品を1つずつ完成→撮影→出品まで進めましょう。"]]);setInsight("#salesInsight",ins.filter(x=>x[0].includes("利益")).length?ins.filter(x=>x[0].includes("利益")):[["売上分析","売上データが増えると利益率・販売先の偏りを分析します。"]]);setInsight("#inventoryInsight",ins.filter(x=>x[0].includes("在庫")).length?ins.filter(x=>x[0].includes("在庫")):[["在庫状況","現在、大きな在庫警告はありません。"]]);setInsight("#contentInsight",ins.filter(x=>x[0].includes("発信")).length?ins.filter(x=>x[0].includes("発信")):[["発信整理","公開予定日を入れると、AIが今週の発信優先度を考えやすくなります。"]]);analysis();setAIMode();renderCalendar();$("#weeklyBrief").innerHTML=weeklyBrief()}
+$("#calPrev").onclick=()=>{calDate=new Date(calDate.getFullYear(),calDate.getMonth()-1,1);renderCalendar()};
+$("#calNext").onclick=()=>{calDate=new Date(calDate.getFullYear(),calDate.getMonth()+1,1);renderCalendar()};
 if("serviceWorker"in navigator&&location.protocol!=="file:")navigator.serviceWorker.register("./sw.js").catch(()=>{});render();
 </script>
 </body></html>
