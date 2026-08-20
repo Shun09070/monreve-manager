@@ -177,7 +177,13 @@ header{padding-top:calc(10px + env(safe-area-inset-top));margin-bottom:14px}.dat
 <button class="b" id="openChatWeb" style="width:100%;margin-top:8px;border:0;border-radius:13px;padding:12px;font-weight:800">Safari版ChatGPTを開く</button><div id="aiStatus" style="font-size:11px;margin-top:8px"></div></div><div class="card"><h3>ChatGPT連携</h3>
 <div class="insight"><strong>おすすめ：ChatGPTアプリ</strong><p>「ChatGPTアプリを開く」を押すと相談文を先にコピーし、iPhoneのChatGPTアプリを開くことを試みます。開いたら入力欄を長押しして「ペースト」してください。Safari版で毎回ログインする手間を減らせます。</p></div>
 <div class="meta" style="margin-top:8px">※ iPhoneの設定によってはアプリではなくWebページが開く場合があります。その場合は下のSafari版ボタンを使えます。</div></div>
-<div class="card"><h3>アプリ内の分析</h3><div id="aiLocal"></div></div></section>
+<div class="card"><h3>Gemini AI（アプリ内回答）</h3>
+<div class="meta">Cloud Runの接続後は、別アプリを開かずここでAI回答を受け取れます。APIキーはGitHubに保存しません。</div>
+<div class="field"><label>GeminiバックエンドURL</label><input id="geminiEndpoint" type="url" placeholder="https://...run.app/analyze"></div>
+<button class="save" id="saveGeminiEndpoint" type="button">接続先を保存</button>
+<button class="gold" id="askGemini" type="button">Geminiに相談する</button>
+<div id="geminiAnswer" class="insight" style="white-space:pre-wrap;margin-top:10px"><strong>Gemini回答</strong><p>接続後、ここに回答が表示されます。</p></div>
+</div><div class="card"><h3>アプリ内の分析</h3><div id="aiLocal"></div></div></section>
 
 <section id="ideas" class="page"><div class="section-head"><h2>企画・アイデア</h2><button class="add" data-add="ideas">＋</button></div><div id="ideasList" class="list"></div></section>
 <section id="inventory" class="page"><div class="section-head"><h2>在庫</h2><button class="add" data-add="inventory">＋</button></div><div class="card"><h3>在庫AI</h3><div id="inventoryInsight"></div></div><div class="card"><h3>在庫 → 制作 → 販売 連携</h3><div id="flowInsight"></div></div><div class="card"><h3>仕入れ判断AI</h3><div id="reorderAI"></div><button class="gold" data-page="ai" data-ai-mode="reorder">ChatGPTで仕入れ判断</button></div>
@@ -281,6 +287,23 @@ $("#openChatWeb").onclick=async()=>{
  await copyPrompt();
  window.open("https://chatgpt.com/","_blank");
 };
+
+const GEMINI_ENDPOINT_KEY="monreve_gemini_endpoint";
+function geminiEndpoint(){return localStorage.getItem(GEMINI_ENDPOINT_KEY)||""}
+$("#geminiEndpoint").value=geminiEndpoint();
+$("#saveGeminiEndpoint").onclick=()=>{localStorage.setItem(GEMINI_ENDPOINT_KEY,$("#geminiEndpoint").value.trim());$("#aiStatus").textContent="Gemini接続先を保存しました。"};
+$("#askGemini").onclick=async()=>{
+ let ep=geminiEndpoint(), box=$("#geminiAnswer");
+ if(!ep){box.innerHTML="<strong>未接続</strong><p>先にCloud RunのURLを設定してください。</p>";return}
+ box.innerHTML="<strong>分析中…</strong><p>Geminiがmonrêveのデータを確認しています。</p>";
+ try{
+  let r=await fetch(ep,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:promptText(),mode:aiMode})});
+  let d=await r.json();
+  if(!r.ok)throw new Error(d.error||("HTTP "+r.status));
+  box.innerHTML="<strong>Gemini回答</strong><p style='white-space:pre-wrap'>"+esc(d.answer||"回答が空でした")+"</p>";
+ }catch(e){box.innerHTML="<strong>接続エラー</strong><p>"+esc(e.message)+"</p>"}
+};
+
 $("#backup").onclick=()=>{let b=new Blob([JSON.stringify(db,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="monreve_backup.json";a.click();URL.revokeObjectURL(a.href)};$("#restoreBtn").onclick=()=>$("#restoreFile").click();$("#restoreFile").onchange=e=>{let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{db=Object.assign(empty(),JSON.parse(r.result));save();render();alert("復元しました")}catch{alert("復元に失敗しました")}};r.readAsText(f)};$("#csv").onclick=()=>{let c=["date","channel","item","qty","amount","cost","fee","shipping","memo"],csv="\ufeff"+c.join(",")+"\n"+db.sales.map(r=>c.map(k=>`"${String(r[k]??"").replaceAll('"','""')}"`).join(",")).join("\n");let b=new Blob([csv],{type:"text/csv"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="monreve_sales.csv";a.click();URL.revokeObjectURL(a.href)};$("#print").onclick=()=>window.print();
 
 function dateMap(){
